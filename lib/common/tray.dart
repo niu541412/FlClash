@@ -16,6 +16,9 @@ import 'window.dart';
 class Tray {
   static Tray? _instance;
 
+  // 缓存上次标题,相同则不重复跨 channel 推送。
+  String? _lastTrayTitle;
+
   Tray._internal();
 
   factory Tray() {
@@ -207,11 +210,12 @@ class Tray {
     if (!system.isMacOS) {
       return;
     }
-    if (!showTrayTitle) {
-      await trayManager.setTitle('');
-    } else {
-      await trayManager.setTitle(traffic.trayTitle);
+    final title = showTrayTitle ? traffic.trayTitle : '';
+    if (title == _lastTrayTitle) {
+      return;
     }
+    _lastTrayTitle = title;
+    await trayManager.setTitle(title);
   }
 
   Future<void> _copyEnv(int port) async {
