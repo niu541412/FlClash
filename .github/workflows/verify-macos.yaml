@@ -1,0 +1,50 @@
+name: verify-macos
+
+# 临时验证 workflow:仅构建 macOS(arm64),避开全平台 / android secrets /
+# release 发布步骤。验证托盘 CPU 修复后可删除本文件。
+on:
+  push:
+    branches:
+      - 'fix/tray-statusitem-cpu-loop'
+  workflow_dispatch:
+
+env:
+  IS_STABLE: 'true'
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
+          cache-dependency-path: |
+            core/go.sum
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.9
+          cache: true
+
+      - name: Get Flutter Dependency
+        run: |
+          flutter --version
+          flutter pub get
+
+      - name: Setup
+        run: dart setup.dart macos --env stable -v
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: flclash-macos-arm64-verify
+          path: ./dist
+          overwrite: true
