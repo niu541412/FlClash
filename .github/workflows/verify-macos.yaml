@@ -1,11 +1,9 @@
 name: verify-macos
 
-# 临时验证 workflow:仅构建 macOS(arm64),避开全平台 / android secrets /
-# release 发布步骤。验证托盘 CPU 修复后可删除本文件。
 on:
   push:
     branches:
-      - 'fix/tray-statusitem-cpu-loop'
+      - 'main'
   workflow_dispatch:
 
 env:
@@ -13,7 +11,20 @@ env:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    name: build-macos (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+            name: arm64
+          - os: macos-15-intel
+            arch: x86_64
+            name: intel
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,12 +50,19 @@ jobs:
           flutter --version
           flutter pub get
 
-      - name: Setup
-        run: dart setup.dart macos --env stable -v
+      - name: Setup (build)
+        run: |
+          dart setup.dart macos --env stable -v
 
-      - name: Upload
+      # 可选：写入架构信息（方便后面打包/排查）
+      - name: Write arch tag
+        run: |
+          echo "BUILD_ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
+          echo "RUNNER_OS=${{ runner.os }}" >> $GITHUB_ENV
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: flclash-macos-arm64-verify
+          name: flclash-macos-${{ matrix.arch }}-verify
           path: ./dist
           overwrite: true
