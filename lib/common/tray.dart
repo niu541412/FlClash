@@ -31,6 +31,9 @@ class Tray {
   }
 
   Future<void> destroy() async {
+    if (system.isMacOS) {
+      return;
+    }
     await trayManager.destroy();
   }
 
